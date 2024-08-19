@@ -1,0 +1,7 @@
+*.pkl
+*.pyc
+result_*.txt
+run_*.sh
+
+atari/data/
+atari/*.txt
