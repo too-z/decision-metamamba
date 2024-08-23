@@ -24,6 +24,8 @@ Our Decision Metamamba code is based on
 [decision-transformer](https://github.com/kzl/decision-transformer)
 [decision-convformer](https://github.com/beanie00/Decision-ConvFormer).
 
+and [mamba](https://github.com/state-spaces/mamba)
+
 
 ## Citation
 
