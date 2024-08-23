@@ -3,6 +3,11 @@
 
 ## Overview
 
+Decision MetaMamba Architecture:
+![image info](./architecture.png)
+
+A link of the paper can be found on [arXiv](https://arxiv.org/abs/2408.10517).
+
 
 ## Acknowledgements
 Our Decision Metamamba code is based on 
@@ -18,3 +23,22 @@ cd path-to-DMM/metamamba
 pip install -e .
 ```
 After the installation is complete, you can train each dataset using the run.sh script.
+
+## Citation
+
+Please cite out paper as:
+```
+@misc{kim2024integratingmultimodalinputtoken,
+      title={Integrating Multi-Modal Input Token Mixer Into Mamba-Based Decision Models: Decision MetaMamba}, 
+      author={Wall Kim},
+      year={2024},
+      eprint={2408.10517},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2408.10517}, 
+}
+```
+
+## License
+
+MIT
