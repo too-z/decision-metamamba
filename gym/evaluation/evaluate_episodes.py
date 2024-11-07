@@ -40,10 +40,6 @@ def evaluate_episode_rtg(
     ep_return = target_return
     
     target_return = torch.tensor(ep_return, device=device, dtype=torch.float32).reshape(1, 1)
-    timesteps = torch.tensor(0, device=device, dtype=torch.long).reshape(1, 1)
-
-    sim_states = []
-
     episode_return, episode_length = 0, 0
     for t in range(max_ep_len):
 
@@ -51,12 +47,46 @@ def evaluate_episode_rtg(
         actions = torch.cat([actions, torch.zeros((1, act_dim), device=device)], dim=0)
         rewards = torch.cat([rewards, torch.zeros(1, device=device)])
 
-        action = model.get_action(
-            states=(states.to(dtype=torch.float32) - state_mean) / state_std,
-            actions=actions,
-            returns_to_go=target_return.to(dtype=torch.float32),
-            timesteps=timesteps,
-        )
+        # action = model.get_action(
+        #     states=(states.to(dtype=torch.float32) - state_mean) / state_std,
+        #     actions=actions,
+        #     returns_to_go=target_return.to(dtype=torch.float32),
+        # )
+        
+        max_length = 8
+        
+        states_ = states
+        actions_ = actions
+        rewards_ = rewards
+        
+        states=(states.to(dtype=torch.float32) - state_mean) / state_std
+        returns_to_go=target_return.to(dtype=torch.float32)
+        
+        states = states.reshape(1, -1, state_dim)
+        actions = actions.reshape(1, -1, act_dim)
+        returns_to_go = returns_to_go.reshape(1, -1, 1)
+
+        states = states[:,-max_length:]
+        actions = actions[:,-max_length:]
+        returns_to_go = returns_to_go[:,-max_length:]
+        
+        states = torch.cat(
+			[torch.zeros((states.shape[0], max_length-states.shape[1], state_dim), device=states.device), states],
+			dim=1).to(dtype=torch.float32)
+        actions = torch.cat(
+			[torch.zeros((actions.shape[0], max_length - actions.shape[1], act_dim), device=actions.device), actions],
+			dim=1).to(dtype=torch.float32)
+        returns_to_go = torch.cat(
+			[torch.zeros((returns_to_go.shape[0], max_length-returns_to_go.shape[1], 1), device=returns_to_go.device), returns_to_go],
+			dim=1).to(dtype=torch.float32)
+        
+        action = model(states, actions, returns_to_go)
+        action = action[0,-1]
+        
+        states = states_
+        actions = actions_
+        rewards = rewards_
+        
         actions[-1] = action
         action = action.detach().cpu().numpy()
 
@@ -71,10 +101,6 @@ def evaluate_episode_rtg(
         else:
             pred_return = target_return[0,-1]
         target_return = torch.cat([target_return, pred_return.reshape(1, 1)], dim=1)
-
-        timesteps = torch.cat(
-            [timesteps,
-             torch.ones((1, 1), device=device, dtype=torch.long) * (t+1)], dim=1)
 
         episode_return += reward
         episode_length += 1
