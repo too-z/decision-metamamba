@@ -162,28 +162,3 @@ class DecisionMetaMamba(nn.Module):
 		action_preds = self.predict_action(state_reps)  # predict next action given state
 
 		return action_preds
-
-	def get_action(self, states, actions, returns_to_go):
-		# we don't care about the past rewards in this model
-
-		states = states.reshape(1, -1, self.state_dim)
-		actions = actions.reshape(1, -1, self.act_dim)
-		returns_to_go = returns_to_go.reshape(1, -1, 1)
-
-		states = states[:,-self.max_length:]
-		actions = actions[:,-self.max_length:]
-		returns_to_go = returns_to_go[:,-self.max_length:]
-
-		states = torch.cat(
-			[torch.zeros((states.shape[0], self.max_length-states.shape[1], self.state_dim), device=states.device), states],
-			dim=1).to(dtype=torch.float32)
-		actions = torch.cat(
-			[torch.zeros((actions.shape[0], self.max_length - actions.shape[1], self.act_dim), device=actions.device), actions],
-			dim=1).to(dtype=torch.float32)
-		returns_to_go = torch.cat(
-			[torch.zeros((returns_to_go.shape[0], self.max_length-returns_to_go.shape[1], 1), device=returns_to_go.device), returns_to_go],
-			dim=1).to(dtype=torch.float32)
-		
-		action_preds = self.forward(states, actions, returns_to_go)
-
-		return action_preds[0,-1]

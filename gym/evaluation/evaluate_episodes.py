@@ -46,12 +46,6 @@ def evaluate_episode_rtg(
         # add padding
         actions = torch.cat([actions, torch.zeros((1, act_dim), device=device)], dim=0)
         rewards = torch.cat([rewards, torch.zeros(1, device=device)])
-
-        # action = model.get_action(
-        #     states=(states.to(dtype=torch.float32) - state_mean) / state_std,
-        #     actions=actions,
-        #     returns_to_go=target_return.to(dtype=torch.float32),
-        # )
         
         max_length = 8
         
