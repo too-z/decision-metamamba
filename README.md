@@ -4,7 +4,7 @@
 ## Overview
 
 Decision MetaMamba Architecture:
-![image info](./architecture.png)
+![image info](./architecture_new.png)
 
 A link of the paper can be found on [arXiv](https://arxiv.org/abs/2408.10517).
 
@@ -18,6 +18,15 @@ pip install -e .
 ```
 After the installation is complete, you can train each dataset using the run.sh script.
 
+## Feature Map Activation for Proximal and Distal steps
+
+Hidden states before and after a Selective Scan SSM
+![hidden state before ssm](./architecture_new.png)
+![hidden state after ssm](./architecture_new.png)
+
+Hidden states before and after a token mixer
+![hidden state before token mixer](./architecture_new.png)
+![hidden state after token mixer](./architecture_new.png)
 
 ## Acknowledgements
 Our Decision Metamamba code is based on 

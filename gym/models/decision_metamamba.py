@@ -91,13 +91,15 @@ class Model(nn.Module):
 		hidden_states=None,
 		inference_params=None,
 	):
+		hidden_states_before_ssm = hidden_states
 		hidden_states = self.drop(hidden_states)
 		for layer in self.layers:
-			hidden_states = layer(
+			hidden_states, hidden_states_before_token_mixer, hidden_states_after_token_mixer = layer(
 				hidden_states, inference_params
 			)
+		hidden_states_after_ssm = hidden_states
 		hidden_states = self.ln_f(hidden_states)
-		return hidden_states
+		return hidden_states, hidden_states_before_ssm, hidden_states_after_ssm, hidden_states_before_token_mixer, hidden_states_after_token_mixer
 
 
 class DecisionMetaMamba(nn.Module):
@@ -151,14 +153,15 @@ class DecisionMetaMamba(nn.Module):
 		stacked_inputs = self.embed_ln(stacked_inputs)
 
 		# we feed in the input embeddings (not word indices as in NLP) to the model
-		x = self.model(hidden_states=stacked_inputs)
+		
+		x_, hidden_states_before_ssm, hidden_states_after_ssm, hidden_states_before_token_mixer, hidden_states_after_token_mixer = self.model(hidden_states=stacked_inputs)
 
 		# reshape x so that the second dimension corresponds to the original
 		# returns (0), states (1), or actions (2); i.e. x[:,1,t] is the token for s_t
-		x = x.reshape(batch_size, seq_length, num_token_type, self.hidden_size).permute(0, 2, 1, 3)
+		x = x_.reshape(batch_size, seq_length, num_token_type, self.hidden_size).permute(0, 2, 1, 3)
 
 		state_reps = x[:,1]
 		
 		action_preds = self.predict_action(state_reps)  # predict next action given state
 
-		return action_preds
+		return action_preds, hidden_states_before_ssm, hidden_states_after_ssm, hidden_states_before_token_mixer, hidden_states_after_token_mixer

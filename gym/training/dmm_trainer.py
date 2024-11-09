@@ -11,7 +11,7 @@ class DecisionMetaMambaTrainer(Trainer):
         states, actions, rtg, traj_mask = self.get_batch(self.batch_size)
         action_target = torch.clone(actions)
 
-        action_preds = self.model.forward(states, actions, rtg[:,:-1])
+        action_preds, _, _, _, _ = self.model.forward(states, actions, rtg[:,:-1])
         act_dim = action_preds.shape[2]
         action_preds = action_preds.reshape(-1, act_dim)[traj_mask.reshape(-1) > 0]
         action_target = action_target.reshape(-1, act_dim)[traj_mask.reshape(-1) > 0]

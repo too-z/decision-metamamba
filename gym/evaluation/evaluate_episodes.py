@@ -3,6 +3,21 @@ import sys
 import torch
 import numpy as np
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def draw_feature_map(feature_map, name):
+    plt.figure(figsize=(14, 6))
+    sns.heatmap(feature_map, cmap='viridis', annot=False, vmax=5, vmin=-5)  # `annot=True` shows values in cells
+    plt.title(name)
+    plt.show()
+    
+def draw_feature_map_token_mixer(feature_map, name):
+    plt.figure(figsize=(14, 6))
+    sns.heatmap(feature_map, cmap='summer', annot=False, vmax=5, vmin=-5)  # `annot=True` shows values in cells
+    plt.title(name)
+    plt.show()
+
 
 def evaluate_episode_rtg(
         env,
@@ -74,7 +89,7 @@ def evaluate_episode_rtg(
 			[torch.zeros((returns_to_go.shape[0], max_length-returns_to_go.shape[1], 1), device=returns_to_go.device), returns_to_go],
 			dim=1).to(dtype=torch.float32)
         
-        action = model(states, actions, returns_to_go)
+        action, hidden_states_before_ssm, hidden_states_after_ssm, hidden_states_before_token_mixer, hidden_states_after_token_mixer,  = model(states, actions, returns_to_go)
         action = action[0,-1]
         
         states = states_
@@ -101,5 +116,11 @@ def evaluate_episode_rtg(
 
         if done:
             break
+    
+    draw_feature_map_token_mixer(hidden_states_before_token_mixer[0].detach().cpu().numpy(), "hidden_states_before_token_mixer")
+    draw_feature_map_token_mixer(hidden_states_after_token_mixer[0].detach().cpu().numpy(), "hidden_states_after_token_mixer")
+    
+    draw_feature_map(hidden_states_before_ssm[0].detach().cpu().numpy(), "hidden_states_before_ssm")
+    draw_feature_map(hidden_states_after_ssm[0].detach().cpu().numpy(), "hidden_states_after_ssm")
     
     return episode_return, episode_length
