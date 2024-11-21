@@ -20,13 +20,8 @@ After the installation is complete, you can train each dataset using the run.sh 
 
 ## Feature Map Activation for Proximal and Distal steps
 
-Hidden states before and after a Selective Scan SSM
-![hidden state before ssm](./hidden_state_before_ssm.png)
-![hidden state after ssm](./hidden_state_after_ssm.png)
-
-Hidden states before and after a token mixer
-![hidden state before token mixer](./hidden_state_before_token_mixer.png)
-![hidden state after token mixer](./hidden_state_after_token_mixer.png)
+Activation feature map after a Selective Scan SSM
+![hidden state after ssm](./figure6.png)
 
 ## Acknowledgements
 Our Decision Metamamba code is based on 
