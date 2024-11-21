@@ -211,10 +211,12 @@ class Mamba(nn.Module):
         hidden_states: (B, L, D)
         Returns: same shape as hidden_states
         """
+        hidden_states_before_token_mixer = hidden_states
         _hidden_states = self.ln_1(hidden_states)
         _hidden_states = self.multimodal_token_mixer_1(_hidden_states)
         _hidden_states = hidden_states + _hidden_states
         hidden_states = self.ln_2(_hidden_states)
+        hidden_states_after_token_mixer = hidden_states
         
         batch, seqlen, dim = hidden_states.shape
 
@@ -305,7 +307,7 @@ class Mamba(nn.Module):
                 out = out + _hidden_states
             # else:
             #     out = out + hidden_states
-        return out
+        return out, hidden_states_before_token_mixer, hidden_states_after_token_mixer
 
     def step(self, hidden_states, conv_state, ssm_state):
         dtype = hidden_states.dtype

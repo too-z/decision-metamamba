@@ -91,13 +91,15 @@ class Model(nn.Module):
 		hidden_states=None,
 		inference_params=None,
 	):
+		hidden_states_before_ssm = hidden_states
 		hidden_states = self.drop(hidden_states)
 		for layer in self.layers:
-			hidden_states = layer(
+			hidden_states, hidden_states_before_token_mixer, hidden_states_after_token_mixer = layer(
 				hidden_states, inference_params
 			)
+		hidden_states_after_ssm = hidden_states
 		hidden_states = self.ln_f(hidden_states)
-		return hidden_states
+		return hidden_states, hidden_states_before_ssm, hidden_states_after_ssm, hidden_states_before_token_mixer, hidden_states_after_token_mixer
 
 
 class DecisionMetaMamba(nn.Module):
@@ -151,39 +153,15 @@ class DecisionMetaMamba(nn.Module):
 		stacked_inputs = self.embed_ln(stacked_inputs)
 
 		# we feed in the input embeddings (not word indices as in NLP) to the model
-		x = self.model(hidden_states=stacked_inputs)
+		
+		x_, hidden_states_before_ssm, hidden_states_after_ssm, hidden_states_before_token_mixer, hidden_states_after_token_mixer = self.model(hidden_states=stacked_inputs)
 
 		# reshape x so that the second dimension corresponds to the original
 		# returns (0), states (1), or actions (2); i.e. x[:,1,t] is the token for s_t
-		x = x.reshape(batch_size, seq_length, num_token_type, self.hidden_size).permute(0, 2, 1, 3)
+		x = x_.reshape(batch_size, seq_length, num_token_type, self.hidden_size).permute(0, 2, 1, 3)
 
 		state_reps = x[:,1]
 		
 		action_preds = self.predict_action(state_reps)  # predict next action given state
 
-		return action_preds
-
-	def get_action(self, states, actions, returns_to_go, timesteps):
-		# we don't care about the past rewards in this model
-
-		states = states.reshape(1, -1, self.state_dim)
-		actions = actions.reshape(1, -1, self.act_dim)
-		returns_to_go = returns_to_go.reshape(1, -1, 1)
-
-		states = states[:,-self.max_length:]
-		actions = actions[:,-self.max_length:]
-		returns_to_go = returns_to_go[:,-self.max_length:]
-
-		states = torch.cat(
-			[torch.zeros((states.shape[0], self.max_length-states.shape[1], self.state_dim), device=states.device), states],
-			dim=1).to(dtype=torch.float32)
-		actions = torch.cat(
-			[torch.zeros((actions.shape[0], self.max_length - actions.shape[1], self.act_dim), device=actions.device), actions],
-			dim=1).to(dtype=torch.float32)
-		returns_to_go = torch.cat(
-			[torch.zeros((returns_to_go.shape[0], self.max_length-returns_to_go.shape[1], 1), device=returns_to_go.device), returns_to_go],
-			dim=1).to(dtype=torch.float32)
-		
-		action_preds = self.forward(states, actions, returns_to_go)
-
-		return action_preds[0,-1]
+		return action_preds, hidden_states_before_ssm, hidden_states_after_ssm, hidden_states_before_token_mixer, hidden_states_after_token_mixer

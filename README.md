@@ -18,6 +18,10 @@ pip install -e .
 ```
 After the installation is complete, you can train each dataset using the run.sh script.
 
+## Feature Map Activation for Proximal and Distal steps
+
+Activation feature map after a Selective Scan SSM
+![hidden state after ssm](./figure6.png)
 
 ## Acknowledgements
 Our Decision Metamamba code is based on 
