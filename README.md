@@ -4,7 +4,7 @@
 ## Overview
 
 Decision MetaMamba Architecture:
-![image info](./architecture_new.png)
+![image info](./architecture.png)
 
 A link of the paper can be found on [arXiv](https://arxiv.org/abs/2408.10517).
 
