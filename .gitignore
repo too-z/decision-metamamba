@@ -1,0 +1,8 @@
+*.pkl
+*.pyc
+result_*.txt
+run_*.sh
+
+mamba/dist/
+
+*.log
