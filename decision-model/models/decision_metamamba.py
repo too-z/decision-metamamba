@@ -20,18 +20,6 @@ except:
 logger = logging.get_logger(__name__)
 
 
-# class SequenceMixerConv1d(nn.Module):
-#     def __init__(self, window_size, hidden_size):
-#         super().__init__()
-#         self.window_size = window_size
-#         self.conv1d = nn.Conv1d(in_channels=hidden_size, out_channels=hidden_size, kernel_size=self.window_size, groups=hidden_size)
-
-#     def forward(self, x):
-#         padded_tensor = torch.nn.functional.pad(x, (0, 0, self.window_size - 1, 0)).transpose(1, 2) # (64, 24, 128) to (64, 128, 29)
-#         conv_tensor = self.conv1d(padded_tensor)
-#         return conv_tensor.transpose(1, 2)
-
-
 class DenseSequenceMixer(nn.Module):
     def __init__(self, window_size, hidden_size):
         super().__init__()
@@ -96,10 +84,8 @@ class Model(nn.Module):
 		hidden_states = self.drop(hidden_states)
 		
 		for local_sequence_mixer, global_sequence_mixer in zip(self.local_sequence_mixers, self.global_sequence_mixers):
-		# for global_sequence_mixer in self.global_sequence_mixers:
 			_hidden_states = self.ln_1(hidden_states)
 			_hidden_states = local_sequence_mixer(_hidden_states)
-			# _hidden_states = self.local_sequence_mixer(_hidden_states)
 			
 			hidden_states = hidden_states + _hidden_states
 			
