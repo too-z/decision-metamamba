@@ -12,10 +12,7 @@ from mamba_ssm.modules.mamba_simple import Mamba
 # from mamba_ssm.modules.mamba2_simple import Mamba2Simple as Mamba2
 from mamba_ssm.modules.mamba2 import Mamba2
 
-try:
-	from mamba_ssm.ops.triton.layernorm import RMSNorm, layer_norm_fn, rms_norm_fn
-except:
-	RMSNorm, layer_norm_fn, rms_norm_fn = None, None, None
+
 
 logger = logging.get_logger(__name__)
 
@@ -172,15 +169,9 @@ class DecisionMetaMamba(nn.Module):
 		actions = actions[:,-self.max_length:]
 		returns_to_go = returns_to_go[:,-self.max_length:]
 
-		states = torch.cat(
-			[torch.zeros((states.shape[0], self.max_length-states.shape[1], self.state_dim), device=states.device), states],
-			dim=1).to(dtype=torch.float32)
-		actions = torch.cat(
-			[torch.zeros((actions.shape[0], self.max_length - actions.shape[1], self.act_dim), device=actions.device), actions],
-			dim=1).to(dtype=torch.float32)
-		returns_to_go = torch.cat(
-			[torch.zeros((returns_to_go.shape[0], self.max_length-returns_to_go.shape[1], 1), device=returns_to_go.device), returns_to_go],
-			dim=1).to(dtype=torch.float32)
+		states = torch.cat([torch.zeros((states.shape[0], self.max_length-states.shape[1], self.state_dim), device=states.device), states],dim=1).to(dtype=torch.float32)
+		actions = torch.cat([torch.zeros((actions.shape[0], self.max_length - actions.shape[1], self.act_dim), device=actions.device), actions],dim=1).to(dtype=torch.float32)
+		returns_to_go = torch.cat([torch.zeros((returns_to_go.shape[0], self.max_length-returns_to_go.shape[1], 1), device=returns_to_go.device), returns_to_go],dim=1).to(dtype=torch.float32)
 		
 		action_preds = self.forward(states, actions, returns_to_go)
 
