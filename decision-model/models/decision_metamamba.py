@@ -161,7 +161,7 @@ class DecisionMetaMamba(nn.Module):
 
 		return action_preds
 
-	def get_action(self, states, actions, returns_to_go, timesteps):
+	def get_action(self, states, actions, returns_to_go):
 		# we don't care about the past rewards in this model
 
 		states = states.reshape(1, -1, self.state_dim)

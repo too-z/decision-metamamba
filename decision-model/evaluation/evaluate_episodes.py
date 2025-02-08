@@ -40,9 +40,6 @@ def evaluate_episode_rtg(
     ep_return = target_return
     
     target_return = torch.tensor(ep_return, device=device, dtype=torch.float32).reshape(1, 1)
-    timesteps = torch.tensor(0, device=device, dtype=torch.long).reshape(1, 1)
-
-    sim_states = []
 
     episode_return, episode_length = 0, 0
     for t in range(max_ep_len):
@@ -55,7 +52,6 @@ def evaluate_episode_rtg(
             states=(states.to(dtype=torch.float32) - state_mean) / state_std,
             actions=actions,
             returns_to_go=target_return.to(dtype=torch.float32),
-            timesteps=timesteps,
         )
         actions[-1] = action
         action = action.detach().cpu().numpy()
@@ -71,10 +67,6 @@ def evaluate_episode_rtg(
         else:
             pred_return = target_return[0,-1]
         target_return = torch.cat([target_return, pred_return.reshape(1, 1)], dim=1)
-
-        timesteps = torch.cat(
-            [timesteps,
-             torch.ones((1, 1), device=device, dtype=torch.long) * (t+1)], dim=1)
 
         episode_return += reward
         episode_length += 1
