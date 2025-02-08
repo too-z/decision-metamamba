@@ -3,6 +3,8 @@ import sys
 import torch
 import numpy as np
 
+from mamba_ssm.utils.generation import InferenceParams
+
 
 def evaluate_episode_rtg(
         env,
@@ -40,6 +42,8 @@ def evaluate_episode_rtg(
     ep_return = target_return
     
     target_return = torch.tensor(ep_return, device=device, dtype=torch.float32).reshape(1, 1)
+    
+    inference_params = InferenceParams(max_batch_size=1, max_seqlen=max_ep_len)
 
     episode_return, episode_length = 0, 0
     for t in range(max_ep_len):
@@ -52,7 +56,9 @@ def evaluate_episode_rtg(
             states=(states.to(dtype=torch.float32) - state_mean) / state_std,
             actions=actions,
             returns_to_go=target_return.to(dtype=torch.float32),
+            inference_params=inference_params
         )
+        # inference_params.seqlen_offset += 1
         actions[-1] = action
         action = action.detach().cpu().numpy()
 

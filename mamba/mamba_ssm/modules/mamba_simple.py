@@ -126,10 +126,12 @@ class Mamba(nn.Module):
 
         conv_state, ssm_state = None, None
         if inference_params is not None:
-            conv_state, ssm_state = self._get_states_from_cache(inference_params, batch)
+            # conv_state, ssm_state = self._get_states_from_cache(inference_params, batch)
+            ssm_state = self._get_states_from_cache(inference_params, batch)
             if inference_params.seqlen_offset > 0:
                 # The states are updated inplace
-                out, _, _ = self.step(hidden_states, conv_state, ssm_state)
+                # out, _, _ = self.step(hidden_states, conv_state, ssm_state)
+                out, _ = self.step(hidden_states, ssm_state)
                 return out
 
         # We do matmul and transpose BLH -> HBL at the same time
@@ -208,28 +210,30 @@ class Mamba(nn.Module):
         return out
         # return y.unsqueeze(1)
 
-    def step(self, hidden_states, conv_state, ssm_state):
+    # def step(self, hidden_states, conv_state, ssm_state):
+    def step(self, hidden_states, ssm_state):
         dtype = hidden_states.dtype
+        print("hidden_states.shape", hidden_states.shape)
         assert hidden_states.shape[1] == 1, "Only support decoding with 1 token at a time for now"
         xz = self.in_proj(hidden_states.squeeze(1))  # (B 2D)
         x, z = xz.chunk(2, dim=-1)  # (B D)
 
-        # Conv step
-        if causal_conv1d_update is None:
-            conv_state.copy_(torch.roll(conv_state, shifts=-1, dims=-1))  # Update state (B D W)
-            conv_state[:, :, -1] = x
-            x = torch.sum(conv_state * rearrange(self.conv1d.weight, "d 1 w -> d w"), dim=-1)  # (B D)
-            if self.conv1d.bias is not None:
-                x = x + self.conv1d.bias
-            x = self.act(x).to(dtype=dtype)
-        else:
-            x = causal_conv1d_update(
-                x,
-                conv_state,
-                rearrange(self.conv1d.weight, "d 1 w -> d w"),
-                self.conv1d.bias,
-                self.activation,
-            )
+        # # Conv 
+        # if causal_conv1d_update is None:
+        #     conv_state.copy_(torch.roll(conv_state, shifts=-1, dims=-1))  # Update state (B D W)
+        #     conv_state[:, :, -1] = x
+        #     x = torch.sum(conv_state * rearrange(self.conv1d.weight, "d 1 w -> d w"), dim=-1)  # (B D)
+        #     if self.conv1d.bias is not None:
+        #         x = x + self.conv1d.bias
+        #     x = self.act(x).to(dtype=dtype)
+        # else:
+        #     x = causal_conv1d_update(
+        #         x,
+        #         conv_state,
+        #         rearrange(self.conv1d.weight, "d 1 w -> d w"),
+        #         self.conv1d.bias,
+        #         self.activation,
+        #     )
 
         x_db = self.x_proj(x)  # (B dt_rank+2*d_state)
         dt, B, C = torch.split(x_db, [self.dt_rank, self.d_state, self.d_state], dim=-1)
@@ -237,7 +241,7 @@ class Mamba(nn.Module):
         dt = F.linear(dt, self.dt_proj.weight)  # (B d_inner)
         A = -torch.exp(self.A_log.float())  # (d_inner, d_state)
 
-        # SSM step
+        # SSM 
         if selective_state_update is None:
             # Discretize A and B
             dt = F.softplus(dt + self.dt_proj.bias.to(dtype=dt.dtype))
@@ -248,12 +252,14 @@ class Mamba(nn.Module):
             y = y + self.D.to(dtype) * x
             y = y * self.act(z)  # (B D)
         else:
+            print("selective_state_update!!")
             y = selective_state_update(
                 ssm_state, x, dt, A, B, C, self.D, z=z, dt_bias=self.dt_proj.bias, dt_softplus=True
             )
 
         out = self.out_proj(y)
-        return out.unsqueeze(1), conv_state, ssm_state
+        # return out.unsqueeze(1), conv_state, ssm_state
+        return out.unsqueeze(1), ssm_state
 
     def allocate_inference_cache(self, batch_size, max_seqlen, dtype=None, **kwargs):
         device = self.out_proj.weight.device
@@ -272,13 +278,13 @@ class Mamba(nn.Module):
         assert self.layer_idx is not None
         if self.layer_idx not in inference_params.key_value_memory_dict:
             batch_shape = (batch_size,)
-            conv_state = torch.zeros(
-                batch_size,
-                self.d_model * self.expand,
-                self.d_conv,
-                device=self.conv1d.weight.device,
-                dtype=self.conv1d.weight.dtype,
-            )
+            # conv_state = torch.zeros(
+            #     batch_size,
+            #     self.d_model * self.expand,
+            #     self.d_conv,
+            #     device=self.conv1d.weight.device,
+            #     dtype=self.conv1d.weight.dtype,
+            # )
             ssm_state = torch.zeros(
                 batch_size,
                 self.d_model * self.expand,
@@ -287,11 +293,14 @@ class Mamba(nn.Module):
                 dtype=self.dt_proj.weight.dtype,
                 # dtype=torch.float32,
             )
-            inference_params.key_value_memory_dict[self.layer_idx] = (conv_state, ssm_state)
+            # inference_params.key_value_memory_dict[self.layer_idx] = (conv_state, ssm_state)
+            inference_params.key_value_memory_dict[self.layer_idx] = ssm_state
         else:
-            conv_state, ssm_state = inference_params.key_value_memory_dict[self.layer_idx]
+            # conv_state, ssm_state = inference_params.key_value_memory_dict[self.layer_idx]
+            ssm_state = inference_params.key_value_memory_dict[self.layer_idx]
             # TODO: What if batch size changes between generation, and we reuse the same states?
             if initialize_states:
-                conv_state.zero_()
+                # conv_state.zero_()
                 ssm_state.zero_()
-        return conv_state, ssm_state
+        # return conv_state, ssm_state
+        return ssm_state

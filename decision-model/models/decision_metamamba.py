@@ -130,7 +130,7 @@ class DecisionMetaMamba(nn.Module):
 			*([nn.Linear(hidden_size, self.act_dim)] + ([nn.Tanh()] if action_tanh else []))
 		)
 		
-	def forward(self, states, actions, returns_to_go):
+	def forward(self, states, actions, returns_to_go, inference_params=None):
 		batch_size, seq_length = states.shape[0], states.shape[1]
 		
 		state_embeddings = self.embed_state(states)
@@ -146,7 +146,7 @@ class DecisionMetaMamba(nn.Module):
 		stacked_inputs = self.embed_ln(stacked_inputs)
 
 		# we feed in the input embeddings (not word indices as in NLP) to the model
-		x = self.model(hidden_states=stacked_inputs)
+		x = self.model(hidden_states=stacked_inputs, inference_params=inference_params)
 
 		# reshape x so that the second dimension corresponds to the original
 		# returns (0), states (1), or actions (2); i.e. x[:,1,t] is the token for s_t
@@ -158,7 +158,7 @@ class DecisionMetaMamba(nn.Module):
 
 		return action_preds
 
-	def get_action(self, states, actions, returns_to_go):
+	def get_action(self, states, actions, returns_to_go, inference_params):
 		# we don't care about the past rewards in this model
 
 		states = states.reshape(1, -1, self.state_dim)
@@ -173,6 +173,6 @@ class DecisionMetaMamba(nn.Module):
 		actions = torch.cat([torch.zeros((actions.shape[0], self.max_length - actions.shape[1], self.act_dim), device=actions.device), actions],dim=1).to(dtype=torch.float32)
 		returns_to_go = torch.cat([torch.zeros((returns_to_go.shape[0], self.max_length-returns_to_go.shape[1], 1), device=returns_to_go.device), returns_to_go],dim=1).to(dtype=torch.float32)
 		
-		action_preds = self.forward(states, actions, returns_to_go)
+		action_preds = self.forward(states, actions, returns_to_go, inference_params)
 
 		return action_preds[0,-1]
